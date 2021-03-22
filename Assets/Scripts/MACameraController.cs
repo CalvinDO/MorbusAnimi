@@ -52,7 +52,16 @@ public class MACameraController : MonoBehaviour
 
     private void CalculateMovement()
     {
+        AccelerateXZ();
 
+        LimitSpeed();
+
+        ManageJump();
+    }
+
+    private void AccelerateXZ()
+    {
+        //Accelerate Player due to Inputs
         if (Input.GetKey("w"))
         {
             Vector3 forward = (this.xRotator.transform.rotation * Vector3.forward);
@@ -88,11 +97,26 @@ public class MACameraController : MonoBehaviour
             //this.transform.Translate(right * this.movementSpeed);
             this.rb.AddForce(right * this.movementSpeed, ForceMode.Acceleration);
         }
-        if (this.rb.velocity.magnitude > this.maxMovementSpeed)
-        {
-            this.rb.velocity = this.rb.velocity.normalized * this.maxMovementSpeed;
-        }
+    }
 
+    private void LimitSpeed()
+    {
+        //Limit the Player Speed because without it acceleration would result in infinite speed!
+        Vector3 velocityXZ = Vector3.ProjectOnPlane(this.rb.velocity, Vector3.up);
+
+        if (velocityXZ.magnitude > this.maxMovementSpeed)
+        {
+
+            Vector3 newVelocityXZ = velocityXZ.normalized * this.maxMovementSpeed;
+
+            this.rb.velocity = new Vector3(newVelocityXZ.x, this.rb.velocity.y, newVelocityXZ.z);
+
+        }
+    }
+
+    private void ManageJump()
+    {
+        //manageJump
         if (Input.GetKeyDown("space") && this.isGrounded)
         {
             Vector3 force = Vector3.up * this.jumpForce;
