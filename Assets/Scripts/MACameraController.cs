@@ -34,7 +34,7 @@ public class MACameraController : MonoBehaviour
     void Start()
     {
         this.xRotation = Input.GetAxis("Mouse X") * this.rotationSpeed;
-        this.yRotation = Input.GetAxis("Mouse Y") * this.rotationSpeed;
+        this.yRotation = Input.GetAxis("Mouse Y") * this.rotationSpeed
     }
 
 
