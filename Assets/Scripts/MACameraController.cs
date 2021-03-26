@@ -2,13 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
 public class MACameraController : MonoBehaviour {
     [Range(0, 50f)]
     public float movementAcceleration;
 
     [Range(0, 10f)]
     public float maxMovementSpeed;
+
+    [Range(0, 10f)]
+    public float maxMovementSprintSpeed;
 
     [Range(0, 15)]
     public float mouseSensitivity;
@@ -28,29 +30,63 @@ public class MACameraController : MonoBehaviour {
     public GameObject xRotator;
     public GameObject yRotator;
 
-    public float xRotation = 0;
-    public float yRotation = 0;
+    float xRotationAmount = 0;
+    float yRotationAmount = 0;
 
 
+    float xRotationClamp = 0;
 
 
-    bool isGrounded = false;
+    public Camera camera;
+
+    bool isGrounded = true;
+
+    bool sprinting = false;
+    float timeSinceSprintStarted = 0;
+    public float SprintFOVLerpFactor;
+
+    bool movementEnabled = true;
+    int framesTillStart = 0;
+
+    int framesTillJump = 0;
+    bool inJump = false;
 
     void Start() {
-        this.xRotation = Input.GetAxis("Mouse X") * this.mouseSensitivity;
-        this.yRotation = Input.GetAxis("Mouse Y") * this.mouseSensitivity;
+
+        //this.xRotationClamp = Input.GetAxis("Mouse X") * this.mouseSensitivity;
+        //this.yRotationClamp = Input.GetAxis("Mouse Y") * this.mouseSensitivity;
+
+        this.xRotationClamp = 0;
+        this.xRotationAmount = 0;
+
+        Cursor.lockState = CursorLockMode.Locked;
+
     }
 
 
     void Update() {
 
         this.CalculateMovement();
-        this.CalculateRotation();
+        if (this.framesTillStart > 1) {
+            this.CalculateRotation();
+        }
+
+        if (this.inJump) {
+            this.framesTillJump++;
+        }
+
+        this.framesTillStart++;
     }
 
     private void OnCollisionStay(Collision collision) {
-        this.isGrounded = true;
+        if (this.framesTillJump > 10) {
+            this.isGrounded = true;
+            this.inJump = false;
+            this.framesTillJump = 0;
+        }
     }
+
+
 
     private void CalculateMovement() {
         this.AccelerateXZ();
@@ -62,9 +98,12 @@ public class MACameraController : MonoBehaviour {
         this.ManageJump();
     }
 
+
     private void AccelerateXZ() {
 
-        //Accelerate Player due to Inputs
+        if (!this.movementEnabled) {
+            return;
+        }
 
         Vector3 resultingVector = Vector3.zero;
 
@@ -92,9 +131,32 @@ public class MACameraController : MonoBehaviour {
             resultingVector += right;
         }
 
+        ManageSprinting();
+
         Vector3 normalizedSum = resultingVector.normalized;
+
         Vector3 scaledNormalizedResult = normalizedSum * this.movementAcceleration;
+
         this.rb.AddForce(scaledNormalizedResult, ForceMode.Acceleration);
+    }
+
+    private void ManageSprinting() {
+        if (Input.GetKey("left shift")) {
+            this.sprinting = true;
+            this.camera.fieldOfView = Mathf.Lerp(70, 85, this.timeSinceSprintStarted);
+
+            this.timeSinceSprintStarted += Time.deltaTime * this.SprintFOVLerpFactor;
+        }
+        else {
+            this.sprinting = false;
+            this.camera.fieldOfView = Mathf.Lerp(70, 85, this.timeSinceSprintStarted);
+
+
+            this.timeSinceSprintStarted -= Time.deltaTime * this.SprintFOVLerpFactor;
+
+        }
+
+        this.timeSinceSprintStarted = Mathf.Clamp(this.timeSinceSprintStarted, 0, 1);
     }
 
     private Vector3 GetVectorInDirection(Vector3 direction) {
@@ -103,18 +165,32 @@ public class MACameraController : MonoBehaviour {
         return Vector3.ProjectOnPlane(rotated, Vector3.up).normalized;
     }
 
+
     private void LimitSpeed() {
 
         //Limit the Player Speed because without it acceleration would result in infinite speed!
         Vector3 velocityXZ = Vector3.ProjectOnPlane(this.rb.velocity, Vector3.up);
 
-        if (velocityXZ.magnitude > this.maxMovementSpeed) {
+        switch (this.sprinting) {
+            case true:
+                if (velocityXZ.magnitude > this.maxMovementSprintSpeed) {
 
-            Vector3 newVelocityXZ = velocityXZ.normalized * this.maxMovementSpeed;
+                    Vector3 newVelocityXZ = velocityXZ.normalized * this.maxMovementSpeed;
 
-            this.rb.velocity = new Vector3(newVelocityXZ.x, this.rb.velocity.y, newVelocityXZ.z);
+                    this.rb.velocity = new Vector3(newVelocityXZ.x, this.rb.velocity.y, newVelocityXZ.z);
+                }
+                break;
+            case false:
+                if (velocityXZ.magnitude > this.maxMovementSpeed) {
+
+                    Vector3 newVelocityXZ = velocityXZ.normalized * this.maxMovementSpeed;
+
+                    this.rb.velocity = new Vector3(newVelocityXZ.x, this.rb.velocity.y, newVelocityXZ.z);
+                }
+                break;
         }
     }
+
 
     private void SlowDown() {
 
@@ -128,38 +204,37 @@ public class MACameraController : MonoBehaviour {
         }
     }
 
+
     private void ManageJump() {
-        //manageJump
-        if (Input.GetKeyDown("space") && this.isGrounded && this.rb.velocity.y <= 0) {
+        if (Input.GetKeyDown("space") && this.isGrounded) {
             Vector3 force = Vector3.up * this.jumpForce;
 
             rb.AddForce(force, ForceMode.Impulse);
 
             this.transform.Translate(Vector3.up * 0.01f);
             this.isGrounded = false;
+            this.inJump = true;
         }
     }
 
+
     private void CalculateRotation() {
+        this.xRotationAmount = -Input.GetAxis("Mouse Y") * this.mouseSensitivity;
+        this.xRotationClamp += this.xRotationAmount;
 
-        if (this.xRotation <= this.maxRotationAngle) {
-            this.xRotation -= Input.GetAxis("Mouse Y") * this.mouseSensitivity;
+        this.yRotationAmount = Input.GetAxis("Mouse X") * this.mouseSensitivity;
+
+        this.yRotator.transform.Rotate(Vector3.up, this.yRotationAmount);
+
+        if (this.xRotationClamp > this.maxRotationAngle) {
+            this.xRotationClamp = this.maxRotationAngle;
+
+        }
+        else if (this.xRotationClamp < -this.maxRotationAngle) {
+            this.xRotationClamp = -this.maxRotationAngle;
         }
         else {
-            this.xRotation = this.maxRotationAngle;
+            this.xRotator.transform.Rotate(Vector3.right, this.xRotationAmount);
         }
-
-        if (this.xRotation >= -this.maxRotationAngle) {
-            this.xRotation -= Input.GetAxis("Mouse Y") * this.mouseSensitivity;
-        }
-        else {
-            this.xRotation = -this.maxRotationAngle;
-        }
-
-        this.yRotation += Input.GetAxis("Mouse X") * this.mouseSensitivity;
-
-        this.xRotator.transform.SetPositionAndRotation(this.xRotator.transform.position, Quaternion.Euler(this.xRotation, this.xRotator.transform.eulerAngles.y, this.xRotator.transform.eulerAngles.z));
-
-        this.yRotator.transform.SetPositionAndRotation(this.yRotator.transform.position, Quaternion.Euler(this.yRotator.transform.eulerAngles.x, this.yRotation, this.yRotator.transform.eulerAngles.z));
     }
 }
