@@ -116,6 +116,7 @@ public class MACameraController : MonoBehaviour {
         if (Input.GetKey("a")) {
             Vector3 left = GetVectorInDirection(Vector3.left);
 
+            Debug.Log(Vector3.left);
             resultingVector += left;
         }
 
