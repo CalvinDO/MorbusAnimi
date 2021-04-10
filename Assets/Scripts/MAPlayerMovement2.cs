@@ -18,7 +18,6 @@ public class MAPlayerMovement2 : MonoBehaviour
     bool isGrounded;
 
     public Camera cam;
-    public MAInteractable focus;
     public Material inputHighlightMaterial;
 
     MAInteractable hover;
@@ -59,23 +58,20 @@ public class MAPlayerMovement2 : MonoBehaviour
         RaycastHit hit;
         if(Physics.Raycast(cam.transform.position, cam.transform.forward, out hit, interactDistance))
         {
-            
+
             MAInteractable interactable = hit.collider.GetComponent<MAInteractable>();
             if (this.hover == interactable)
             {
+                if (Input.GetMouseButtonDown(0) && interactable != null)
+                {
+                    this.hover.MAInteract();
+                }
                 return;
             }
             if (interactable != null)
             {
                 this.hover = interactable;
                 this.hover.setHover();
-                if (Input.GetMouseButtonDown(0))
-                {
-                    this.SetFocus(this.hover);
-                } else
-                {
-                    this.RemoveFocus();
-                }
             }
             else
             {
@@ -83,13 +79,5 @@ public class MAPlayerMovement2 : MonoBehaviour
                 this.hover = null;
             }
         }
-    }
-    void SetFocus (MAInteractable newFocus)
-    {
-        focus = newFocus;
-    }
-    void RemoveFocus()
-    {
-        focus = null;
     }
 }
