@@ -23,21 +23,17 @@ public class MAInteractWithObject : MAInteractable
 
     void PickUp()
     {
-        Debug.Log("Picked up " + this.item.name);
         MAInventory.instance.Add(this.item);
         Destroy(this.gameObject);
+        textDisplay.SetActive(false);
     }
 
     void Open()
     {
         if (inventory.items.Contains(this.item))
         {
-            Debug.Log("opened door.");
             Destroy(this.gameObject);
-        }
-        else
-        {
-            Debug.Log("need key.");
+            textDisplay.SetActive(false);
         }
     }
 }

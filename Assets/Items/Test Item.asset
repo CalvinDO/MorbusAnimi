@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   name: Key
   icon: {fileID: 21300000, guid: 8251355733dcd514b8f51102c1197c2c, type: 3}
+  description: This is the right key.
