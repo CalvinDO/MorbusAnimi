@@ -18,7 +18,6 @@ public class MANewCameraMovement : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
         defaultCameraPosition = transform.position;
     }
 
@@ -28,12 +27,12 @@ public class MANewCameraMovement : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        this.mainCamera.transform.position = Vector3.Lerp(this.mainCamera.transform.position, this.transform.position, 0.05f);
+        this.mainCamera.transform.position = Vector3.Lerp(this.mainCamera.transform.position, this.transform.position, 0.01f);
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -7f, 7f);
         yRotation -= mouseX;
         yRotation = Mathf.Clamp(yRotation, -7f, 7f);
 
-        this.transform.localRotation = Quaternion.Euler(11f + xRotation, 270f - yRotation, 0f);
+        this.mainCamera.transform.localRotation = Quaternion.Euler(11f + xRotation, 270f - yRotation, 0f);
     }
 }

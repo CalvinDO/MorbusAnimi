@@ -6,7 +6,7 @@ public class MANewPlayerMovement : MonoBehaviour
     public CharacterController controller;
 
     public float speed = 12f;
-    public float gravity = -9.81f;
+    public float gravity = -29.43f;
     public float jumpHeight = 3f;
     public float interactDistance = 1f;
 
@@ -17,8 +17,9 @@ public class MANewPlayerMovement : MonoBehaviour
 
     Vector3 velocity;
     bool isGrounded;
+    bool isClimbing;
 
-    public Camera cam;
+    Camera cam;
     public Material inputHighlightMaterial;
 
     MAInteractable hover;
@@ -28,6 +29,7 @@ public class MANewPlayerMovement : MonoBehaviour
     private void Start()
     {
         MAPlayerMovement2.highlightMaterial = inputHighlightMaterial;
+        cam = Camera.main;
     }
 
     // Update is called once per frame
@@ -37,47 +39,80 @@ public class MANewPlayerMovement : MonoBehaviour
 
         if (isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f;
+            velocity.y = 0f;
         }
 
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
         Vector3 move = transform.right * -z + transform.forward * x;
+        Vector3 climb = transform.up * z + transform.forward * x; 
 
-        controller.Move(move * speed * Time.deltaTime);
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.forward, out hit))
+        {
+            float distance = hit.distance;
+            Debug.Log(distance);
+            if (Input.GetButton("Interact"))
+            {
+                GameObject climbable = hit.collider.gameObject;
+                Debug.Log(climbable.name);
+                if (climbable.layer == LayerMask.NameToLayer("Climb") && distance <= interactDistance)
+                {
+                    gravity = 0f;
+                    isClimbing = true;
+                }
+                else
+                {
+                    gravity = -29.43f;
+                    isClimbing = false;
+                }
+            }
+        }
+
+        if (isClimbing)
+        {
+            controller.Move(climb * (speed/2) * Time.deltaTime);
+        } else
+        {
+            controller.Move(move * speed * Time.deltaTime);
+        }
 
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+           velocity.y = Mathf.Sqrt(jumpHeight * -1f * gravity);
         }
 
         velocity.y += gravity * Time.deltaTime;
 
         controller.Move(velocity * Time.deltaTime);
 
-        RaycastHit hit;
-        if (Physics.Raycast(cam.transform.position, cam.transform.forward, out hit, interactDistance))
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        if (Input.GetMouseButtonDown(0))
         {
 
-            MAInteractable interactable = hit.collider.GetComponent<MAInteractable>();
-            if (this.hover == interactable)
+            if (Physics.Raycast(ray, out hit))
             {
-                if (Input.GetButtonDown("Interact") && interactable != null)
+                MAInteractable interactable = hit.collider.GetComponent<MAInteractable>();
+                if (this.hover == interactable)
                 {
-                    this.hover.MAInteract();
+                    if (Input.GetMouseButtonDown(0) && interactable != null)
+                    {
+                        this.hover.MAInteract();
+                    }
+                    return;
                 }
-                return;
-            }
-            if (interactable != null)
-            {
-                this.hover = interactable;
-                this.hover.setHover();
-            }
-            else
-            {
-                this.hover.removeHover();
-                this.hover = null;
+                if (interactable != null)
+                {
+                    this.hover = interactable;
+                    this.hover.setHover();
+                }
+                else
+                {
+                    this.hover.removeHover();
+                    this.hover = null;
+                }
+
             }
         }
 

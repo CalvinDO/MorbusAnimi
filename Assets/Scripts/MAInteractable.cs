@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class MAInteractable : MonoBehaviour
 {
-    public enum interactType {item, obstacle};
+    public enum interactType {item, obstacle, climb};
     public interactType currentSelection = interactType.item;
     public float radius = 3f;
     public GameObject textDisplay;
@@ -53,10 +53,14 @@ private void Start()
         }
         textDisplay.SetActive(true);
         hoverTextObject.text = newHoverText;
-        this.meshRenderer.material = MAPlayerMovement2.highlightMaterial;
+        this.meshRenderer.sharedMaterial.SetFloat("Vector1_e2245ad420544fc4a4469d436b48ff82", 0.4f);
     }
 
     public virtual void MAInteract()
+    {
+        // this is overwritten
+    }
+    public virtual void MAClimb()
     {
         // this is overwritten
     }
